@@ -1,0 +1,126 @@
+<html>
+	<head>
+		<title>ServerMonitor 2</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<script src="http://fargo.io/code/jquery-1.9.1.min.js"></script><link href="http://fargo.io/code/bootstrap.css" rel="stylesheet"><script src="http://fargo.io/code/bootstrap.min.js"></script><link rel="stylesheet" href="http://fargo.io/code/fontAwesome/css/font-awesome.min.css"/><link href="http://fargo.io/code/ubuntuFont.css" rel="stylesheet" type="text/css"><link href="http://fargo.io/code/ranchoFont.css" rel="stylesheet" type="text/css"><script src="http://fargo.io/code/node/shared/utils.js"></script><script src="http://fargo.io/code/node/shared/alertdialog.js"></script><script src="http://fargo.io/code/node/shared/confirmdialog.js"></script><script src="http://fargo.io/code/node/shared/askdialog.js"></script><script src="http://fargo.io/code/strftime.js"></script><script src="http://fargo.io/code/shared/ga.js"></script><script src="http://fargo.io/code/shared/app.js"></script><script src="http://fargo.io/code/shared/menus.js"></script><link href="http://fargo.io/code/shared/menus.css" rel="stylesheet" type="text/css"><link href="http://fargo.io/code/shared/app.css" rel="stylesheet" type="text/css"><script src="http://fargo.io/code/shared/appprefs.js"></script><script src="http://fargo.io/code/shared/beep.js"></script>
+		<script>
+			var urlStats = "http://fargo.io/testing/servermonitor/stats.json"; 
+			var urlServerList = "http://fargo.io/testing/servermonitor/serverlist.json"; 
+			var ctUpdates = 0;
+			
+			function viewTable () {
+				var htmltext = "", indentlevel = 0;
+				function add (s) {
+					htmltext +=  filledString ("\t", indentlevel) + s + "\n";
+					}
+				function viewTimeString (when) {
+					if (when === "1970-01-01T00:00:00.000Z") {
+						return ("");
+						}
+					var s = getFacebookTimeString (when);
+					if (s == "Just now") {
+						s = "now";
+						}
+					return (s);
+					}
+				function viewNumber (num) {
+					num = Number (num);
+					if (num == 0) {
+						return ("");
+						}
+					else {
+						return (num.toString ());
+						}
+					}
+				function formatDateTime (d) {
+					d = new Date (d);
+					return (d.toLocaleDateString () + " at " + d.toLocaleTimeString ());
+					}
+				readHttpFile (urlServerList, function (jsontext) {
+					var serverlist = JSON.parse (jsontext);
+					readHttpFile (urlStats, function (jsontext) {
+						var stats = JSON.parse (jsontext);
+						add ("<table>"); indentlevel++;
+						//header
+							add ("<tr>");
+							add ("<td><b>Server</b></td>");
+							add ("<td><b>Checks</b></td>");
+							add ("<td><b>Errors</b></td>");
+							add ("<td><b>Secs</b></td>");
+							add ("</tr>");
+						for (var x in stats.servers) {
+							var server = stats.servers [x];
+							var url = serverlist.theList [x].url;
+							
+							add ("<tr>"); indentlevel++;
+							add ("<td><a href=\"" + url + "\" target=\"_blank\">" + x + "</a></td>"); 
+							add ("<td class=\"tdNum\">" + viewNumber (server.ctChecks) + "</td>"); 
+							add ("<td class=\"tdNum\">" + viewNumber (server.ctErrors) + "</td>"); 
+							add ("<td class=\"tdNum\">" + viewNumber (server.ctSecsLastCheck) + "</td>"); 
+							add ("</tr>"); indentlevel--;
+							}
+						add ("</table>"); indentlevel--;
+						
+						add ("<div class=\"divLegend\">"); indentlevel++;
+						add ("<p>Server: " + stats.productName + ", v" + stats.version + ".</p>");
+						add ("<p>Last update on server: " + formatDateTime (stats.whenLastSave) + ".</p>");
+						add ("<p>Number of times this page has updated: " + ++ctUpdates + ".</p>");
+						add ("</div>"); indentlevel--;
+						
+						$("#idServerMonitorTable").html (htmltext);
+						});
+					});
+				}
+			function everyMinute () {
+				viewTable ();
+				}
+			function everySecond () {
+				}
+			function startup () {
+				console.log ("startup");
+				viewTable ();
+				self.setInterval (everySecond, 1000); 
+				self.setInterval (everyMinute, 60000); 
+				}
+			</script>
+		<style>
+			body {
+				font-family: Ubuntu;
+				font-size: 20px;
+				background-color: whitesmoke;
+				}
+			.divPageBody {
+				width: 60%;
+				margin-top: 90px;
+				margin-left: auto;
+				margin-right: auto;
+				}
+			.divServerMonitorTable td {
+				padding: 9px;
+				padding-left: 0;
+				padding-right: 18px;
+				font-size: 20px;
+				}
+			.tdNum {
+				text-align: right;
+				}
+			.divLegend {
+				margin-top: 20px;
+				font-size: 16px;
+				}
+			</style>
+		</head>
+	<body>
+		<div class="divPageBody">
+			<h1>ServerMonitor 2</h1>
+			<div class="divServerMonitorTable" id="idServerMonitorTable">
+				</div>
+			</div>
+		<script>
+			$(document).ready (function () {
+				startup ();
+				});
+			</script>
+		</body>
+	</html>

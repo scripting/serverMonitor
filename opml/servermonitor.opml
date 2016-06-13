@@ -1,0 +1,206 @@
+<?xml encoding="ISO-8859-1" version="1.0"?>
+<opml version="2.0">
+	<head>
+		<title>servermonitor.js</title>
+		<dateModified>&lt;%dateModified%></dateModified>
+		<expansionState></expansionState>
+		<vertScrollState>1</vertScrollState>
+		<windowTop>300</windowTop>
+		<windowLeft>700</windowLeft>
+		<windowBottom>900</windowBottom>
+		<windowRight>1500</windowRight>
+		</head>
+	<body text="servermonitor.js">
+		<outline text="var myProductName = &quot;Server Monitor&quot;, myVerion = &quot;0.40g&quot;;"></outline>
+		<outline text=""></outline>
+		<outline isComment="true" text="Changes"></outline>
+		<outline text=""></outline>
+		<outline text="var request = require (&quot;request&quot;);"></outline>
+		<outline text="var fs = require (&quot;fs&quot;);"></outline>
+		<outline text="var utils = require (&quot;./lib/utils.js&quot;);"></outline>
+		<outline text="var s3 = require (&quot;./lib/s3.js&quot;);"></outline>
+		<outline text="var rss = require (&quot;./lib/rss.js&quot;);"></outline>
+		<outline text="var dateFormat = require (&quot;dateformat&quot;);"></outline>
+		<outline isComment="true" text="var dns = require (&quot;dns&quot;);"></outline>
+		<outline text=""></outline>
+		<outline text="var stats = {">
+			<outline text="productName: myProductName, version: myVerion,"></outline>
+			<outline text="ctServerStarts: 0, whenLastServerStart: new Date (0),"></outline>
+			<outline text="ctChanges: 0, whenLastChange: new Date (0),"></outline>
+			<outline text="ctSaves: 0, whenLastSave: new Date (0),"></outline>
+			<outline text="servers: {">
+				<outline text="}"></outline>
+				</outline>
+			<outline text="};"></outline>
+			</outline>
+		<outline text="var flStatsDirty = false;"></outline>
+		<outline text="var fnameStats = &quot;stats.json&quot;;"></outline>
+		<outline text="var s3statspath = &quot;/fargo.io/testing/servermonitor/stats.json&quot;;"></outline>
+		<outline text=""></outline>
+		<outline text="var urlServerList = &quot;http://fargo.io/testing/servermonitor/serverlist.json&quot;; "></outline>
+		<outline text="var servers;"></outline>
+		<outline text="var whenLastEveryMinute = new Date ();"></outline>
+		<outline text=""></outline>
+		<outline text="function statsChanged () {">
+			<outline text="stats.ctChanges++;"></outline>
+			<outline text="stats.whenLastChange = new Date ();"></outline>
+			<outline text="flStatsDirty = true;"></outline>
+			<outline text="}"></outline>
+			</outline>
+		<outline isComment="true" text="function tcpGetMyIpAddress () {">
+			<outline text="var interfaces = require (&quot;os&quot;).networkInterfaces ();"></outline>
+			<outline created="Sun, 02 Feb 2014 03:10:13 GMT" isComment="true" pgfnum="36726" text="console.log (interfaces);"></outline>
+			<outline text="for (var devName in interfaces) {">
+				<outline text="var iface = interfaces [devName];"></outline>
+				<outline text="for (var i = 0; i &lt; iface.length; i++) {">
+					<outline text="var alias = iface [i];"></outline>
+					<outline text="if (alias.family === 'IPv4' &amp;&amp; alias.address !== '127.0.0.1' &amp;&amp; !alias.internal)">
+						<outline text="return (alias.address);"></outline>
+						<outline text="}"></outline>
+						</outline>
+					</outline>
+				<outline text="}"></outline>
+				</outline>
+			<outline text="return (&quot;0.0.0.0&quot;);"></outline>
+			<outline text="}"></outline>
+			</outline>
+		<outline created="Wed, 12 Feb 2014 14:47:05 GMT" isComment="true" pgfnum="37541" text="function tcpGetDomainName (ip, callback) {">
+			<outline created="Wed, 12 Feb 2014 14:48:13 GMT" pgfnum="37543" text="dns.reverse (ip, function (err, domains) {">
+				<outline created="Wed, 12 Feb 2014 14:48:51 GMT" pgfnum="37545" text="if (err != null) {">
+					<outline created="Wed, 12 Feb 2014 14:49:11 GMT" pgfnum="37547" text="callback (ip); //use the IP address in place of the domain name"></outline>
+					<outline created="Wed, 12 Feb 2014 14:49:07 GMT" pgfnum="37546" text="}"></outline>
+					</outline>
+				<outline created="Wed, 12 Feb 2014 14:49:24 GMT" pgfnum="37548" text="else {">
+					<outline created="Wed, 12 Feb 2014 15:02:16 GMT" pgfnum="37550" text="callback (domains); "></outline>
+					<outline created="Wed, 12 Feb 2014 14:49:26 GMT" pgfnum="37549" text="}"></outline>
+					</outline>
+				<outline created="Wed, 12 Feb 2014 14:48:23 GMT" pgfnum="37544" text="});"></outline>
+				</outline>
+			<outline created="Wed, 12 Feb 2014 14:47:23 GMT" pgfnum="37542" text="}"></outline>
+			</outline>
+		<outline text="function checkServer (theServer, callback) {">
+			<outline text="var theStats = stats.servers [theServer.name], now = new Date ();"></outline>
+			<outline text="if (theStats === undefined) {">
+				<outline text="theStats = {">
+					<outline text="ctChecks: 0, ctChecksToday: 0,"></outline>
+					<outline text="whenLastCheck: new Date (0),"></outline>
+					<outline text="ctErrors: 0, ctConsecutiveErrors: 0, ctErrorsToday: 0,"></outline>
+					<outline text="whenLastError: new Date (0),"></outline>
+					<outline text="ctSecsLastCheck: 0"></outline>
+					<outline text="};"></outline>
+					</outline>
+				<outline text="stats.servers [theServer.name] = theStats;"></outline>
+				<outline text="}"></outline>
+				</outline>
+			<outline text="if (theStats.ctChecksToday === undefined) {">
+				<outline text="theStats.ctChecksToday = 0;"></outline>
+				<outline text="}"></outline>
+				</outline>
+			<outline text="if (theStats.ctErrorsToday === undefined) {">
+				<outline text="theStats.ctErrorsToday = 0;"></outline>
+				<outline text="}"></outline>
+				</outline>
+			<outline text="theStats.ctChecks++;"></outline>
+			<outline text="theStats.ctChecksToday++;"></outline>
+			<outline text="theStats.whenLastCheck = now;"></outline>
+			<outline text="statsChanged ();"></outline>
+			<outline text="request (theServer.url, function (err, response, s) {">
+				<outline text="if (err) {">
+					<outline text="theStats.ctErrors++;"></outline>
+					<outline text="theStats.ctConsecutiveErrors++;"></outline>
+					<outline text="theStats.ctErrorsToday++;"></outline>
+					<outline text="theStats.whenLastError = now;"></outline>
+					<outline text="console.log (theServer.name + &quot; is not OK. err == &quot; + err.message);"></outline>
+					<outline text="}"></outline>
+					</outline>
+				<outline text="else {">
+					<outline text="theStats.ctConsecutiveErrors = 0;"></outline>
+					<outline text="console.log (theServer.name + &quot; is OK.&quot;);"></outline>
+					<outline text="}"></outline>
+					</outline>
+				<outline text="theStats.ctSecsLastCheck = utils.secondsSince (now);"></outline>
+				<outline text="statsChanged ();"></outline>
+				<outline text="if (callback !== undefined) {">
+					<outline text="callback ();"></outline>
+					<outline text="}"></outline>
+					</outline>
+				<outline text="});"></outline>
+				</outline>
+			<outline text="}"></outline>
+			</outline>
+		<outline text="function everySecond () {">
+			<outline text="if (flStatsDirty) {">
+				<outline text="stats.ctSaves++;"></outline>
+				<outline text="stats.whenLastSave = new Date ();"></outline>
+				<outline text="stats.productName = myProductName;"></outline>
+				<outline text="stats.version = myVerion;"></outline>
+				<outline text=""></outline>
+				<outline text="var jsontext = utils.jsonStringify (stats);"></outline>
+				<outline text="fs.writeFile (fnameStats, jsontext, function (err) {">
+					<outline text="if (err) {">
+						<outline text="console.log (&quot;everySecond: error writing stats file == &quot; + err.message);"></outline>
+						<outline text="}"></outline>
+						</outline>
+					<outline text="});"></outline>
+					</outline>
+				<outline text="s3.newObject (s3statspath, jsontext);"></outline>
+				<outline text="flStatsDirty = false;"></outline>
+				<outline text="}"></outline>
+				</outline>
+			<outline text="}"></outline>
+			</outline>
+		<outline text="function everyMinute () {">
+			<outline text="var now = new Date ();"></outline>
+			<outline text="console.log (&quot;\neveryMinute: &quot; + now.toLocaleTimeString () + &quot;, v&quot; + myVerion);"></outline>
+			<outline text="//rollovers">
+				<outline text="if (!utils.sameDay (now, whenLastEveryMinute)) {">
+					<outline text="for (x in stats.servers) {">
+						<outline text="var server = stats.servers [x];"></outline>
+						<outline text="server.ctChecksToday = 0;"></outline>
+						<outline text="server.ctErrorsToday = 0;"></outline>
+						<outline text="}"></outline>
+						</outline>
+					<outline text="}"></outline>
+					</outline>
+				<outline text="whenLastEveryMinute = now;"></outline>
+				</outline>
+			<outline text="request (urlServerList, function (err, response, jsontext) {">
+				<outline text="if (err) {">
+					<outline text="console.log (&quot;\neveryMinute: error reading serverlist == &quot; + err.message);"></outline>
+					<outline text="}"></outline>
+					</outline>
+				<outline text="else {">
+					<outline text="var servers = JSON.parse (jsontext);"></outline>
+					<outline isComment="true" text="console.log (&quot;\neveryMinute: servers == &quot; + utils.jsonStringify (servers));"></outline>
+					<outline text="for (var x in servers.theList) {">
+						<outline text="checkServer (servers.theList [x]);"></outline>
+						<outline text="}"></outline>
+						</outline>
+					<outline text="}"></outline>
+					</outline>
+				<outline text="});"></outline>
+				</outline>
+			<outline text="}"></outline>
+			</outline>
+		<outline text="function startup () {">
+			<outline text="console.log (&quot;\n&quot; + myProductName + &quot; v&quot; + myVerion);"></outline>
+			<outline text="fs.readFile (fnameStats, function (err, data) {">
+				<outline text="if (!err) {">
+					<outline text="stats = JSON.parse (data.toString ());"></outline>
+					<outline text="}"></outline>
+					</outline>
+				<outline text=""></outline>
+				<outline text="stats.ctServerStarts++;"></outline>
+				<outline text="stats.whenLastServerStart = new Date ();"></outline>
+				<outline text="statsChanged ();"></outline>
+				<outline text=""></outline>
+				<outline text="everyMinute ();"></outline>
+				<outline text="setInterval (everySecond, 1000); "></outline>
+				<outline text="setInterval (everyMinute, 60000); "></outline>
+				<outline text="});"></outline>
+				</outline>
+			<outline text="}"></outline>
+			</outline>
+		<outline text="startup ();"></outline>
+		</body>
+	</opml>

@@ -1,0 +1,19 @@
+<?xml encoding="ISO-8859-1" version="1.0"?>
+<opml version="2.0">
+	<head>
+		<title>readme.md</title>
+		<dateModified>&lt;%dateModified%></dateModified>
+		<expansionState></expansionState>
+		<vertScrollState>1</vertScrollState>
+		<windowTop>300</windowTop>
+		<windowLeft>700</windowLeft>
+		<windowBottom>900</windowBottom>
+		<windowRight>1500</windowRight>
+		</head>
+	<body text="readme.md">
+		<outline text="## serverMonitor"></outline>
+		<outline text="A simple Node app that checks in with a list of servers once a minute and reports on the status in a single page app."></outline>
+		<outline text="#### How to configure"></outline>
+		<outline text="Etc."></outline>
+		</body>
+	</opml>

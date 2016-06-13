@@ -1,0 +1,15 @@
+{
+	"name": "serverMonitor",
+	"description": "Keep a table of my servers indicating which ones are happy or not.",
+	"author": "Dave Winer <dave@smallpicture.com>",
+	"version": "0.40.0",
+	"dependencies" : {
+		"aws-sdk": "*", 
+		"request": "*",
+		"dateformat": "*"
+		}, 
+	"license": "MIT",
+	"engines": {
+		"node": "0.10.*"
+		}
+	}
