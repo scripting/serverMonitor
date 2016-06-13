@@ -14,6 +14,12 @@
 		<outline text="## serverMonitor"></outline>
 		<outline text="A simple Node app that checks in with a list of servers once a minute and reports on the status in a single page app."></outline>
 		<outline text="#### How to configure"></outline>
-		<outline text="Etc."></outline>
+		<outline text="You have to modify the source code to configure this app."></outline>
+		<outline text="In servermonitor.js, set urlServerList to point to your server list."></outline>
+		<outline text="Set s3statspath to point to the S3 location that you want the stats to be saved at."></outline>
+		<outline text="#### Why is this so hard to configure?"></outline>
+		<outline text="I'm basically using GitHub as a backup. "></outline>
+		<outline text="This isn't a supported tool. I figure there are already plenty of ways to monitor the status of server apps. This is the one I like to run. Probably not a big deal."></outline>
+		<outline text="Dave Winer, June 2016"></outline>
 		</body>
 	</opml>
