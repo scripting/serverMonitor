@@ -11,7 +11,7 @@
 		<windowRight>1500</windowRight>
 		</head>
 	<body text="servermonitor.js">
-		<outline text="var myProductName = &quot;Server Monitor&quot;, myVerion = &quot;0.40g&quot;;"></outline>
+		<outline text="var myProductName = &quot;Server Monitor&quot;, myVerion = &quot;0.43c&quot;;"></outline>
 		<outline text=""></outline>
 		<outline isComment="true" text="Changes"></outline>
 		<outline text=""></outline>
@@ -21,13 +21,15 @@
 		<outline text="var s3 = require (&quot;./lib/s3.js&quot;);"></outline>
 		<outline text="var rss = require (&quot;./lib/rss.js&quot;);"></outline>
 		<outline text="var dateFormat = require (&quot;dateformat&quot;);"></outline>
-		<outline isComment="true" text="var dns = require (&quot;dns&quot;);"></outline>
+		<outline text="var dns = require (&quot;dns&quot;);"></outline>
+		<outline text="var sendMail = require (&quot;./lib/sendmail.js&quot;);"></outline>
 		<outline text=""></outline>
 		<outline text="var stats = {">
 			<outline text="productName: myProductName, version: myVerion,"></outline>
 			<outline text="ctServerStarts: 0, whenLastServerStart: new Date (0),"></outline>
 			<outline text="ctChanges: 0, whenLastChange: new Date (0),"></outline>
 			<outline text="ctSaves: 0, whenLastSave: new Date (0),"></outline>
+			<outline text="ctReadListErrors: 0, ctServerReadErrors: 0,  //7/24/16 by DW"></outline>
 			<outline text="servers: {">
 				<outline text="}"></outline>
 				</outline>
@@ -41,6 +43,24 @@
 		<outline text="var servers;"></outline>
 		<outline text="var whenLastEveryMinute = new Date ();"></outline>
 		<outline text=""></outline>
+		<outline text="var config = {};"></outline>
+		<outline text="var whenLastEmailSent = new Date (0), minSecsBetwEmails = 30 * 60; //at most one email every half hour"></outline>
+		<outline text="var fnameConfig = &quot;config.json&quot;;"></outline>
+		<outline text=""></outline>
+		<outline text="function sendMailAboutServer (theServer, message) {">
+			<outline text="if ((config.emailSendTo !== undefined) &amp;&amp; (config.emailSendTo !== undefined)) {">
+				<outline text="if (utils.secondsSince (whenLastEmailSent) &gt; minSecsBetwEmails) {">
+					<outline text="var emailtext = &quot;&lt;p&gt;There was a problem with a server: \&quot;&quot; + theServer.name + &quot;\&quot;. &lt;/p&gt;&lt;p&gt;Message: \&quot;&quot; + message + &quot;\&quot;&lt;/p&gt;&lt;p&gt;To find out more visit http://sm.scripting.com/ &lt;/p&gt;&quot;;"></outline>
+					<outline text="whenLastEmailSent = new Date ();"></outline>
+					<outline text="sendMail.send (config.emailSendTo, &quot;serverMonitor problem&quot;, emailtext, config.emailSendFrom, function () {">
+						<outline text="});"></outline>
+						</outline>
+					<outline text="}"></outline>
+					</outline>
+				<outline text="}"></outline>
+				</outline>
+			<outline text="}"></outline>
+			</outline>
 		<outline text="function statsChanged () {">
 			<outline text="stats.ctChanges++;"></outline>
 			<outline text="stats.whenLastChange = new Date ();"></outline>
@@ -78,7 +98,7 @@
 				</outline>
 			<outline created="Wed, 12 Feb 2014 14:47:23 GMT" pgfnum="37542" text="}"></outline>
 			</outline>
-		<outline text="function checkServer (theServer, callback) {">
+		<outline text="function checkServer (theServer, theMachines, callback) {">
 			<outline text="var theStats = stats.servers [theServer.name], now = new Date ();"></outline>
 			<outline text="if (theStats === undefined) {">
 				<outline text="theStats = {">
@@ -105,23 +125,42 @@
 			<outline text="theStats.whenLastCheck = now;"></outline>
 			<outline text="statsChanged ();"></outline>
 			<outline text="request (theServer.url, function (err, response, s) {">
-				<outline text="if (err) {">
-					<outline text="theStats.ctErrors++;"></outline>
-					<outline text="theStats.ctConsecutiveErrors++;"></outline>
-					<outline text="theStats.ctErrorsToday++;"></outline>
-					<outline text="theStats.whenLastError = now;"></outline>
-					<outline text="console.log (theServer.name + &quot; is not OK. err == &quot; + err.message);"></outline>
+				<outline text="try {">
+					<outline text="if (err) {">
+						<outline text="theStats.ctErrors++;"></outline>
+						<outline text="theStats.ctConsecutiveErrors++;"></outline>
+						<outline text="theStats.ctErrorsToday++;"></outline>
+						<outline text="theStats.whenLastError = now;"></outline>
+						<outline text="console.log (theServer.name + &quot; is not OK. err == &quot; + err.message);"></outline>
+						<outline text="sendMailAboutServer (theServer, err.message);"></outline>
+						<outline text="}"></outline>
+						</outline>
+					<outline text="else {">
+						<outline text="theStats.ctConsecutiveErrors = 0;"></outline>
+						<outline text="console.log (theServer.name + &quot; is OK.&quot;);"></outline>
+						<outline text="}"></outline>
+						</outline>
+					<outline text="theStats.ctSecsLastCheck = utils.secondsSince (now);"></outline>
+					<outline text="statsChanged ();"></outline>
+					<outline text=""></outline>
+					<outline text="var urlparts = utils.urlSplitter (theServer.url), domain = urlparts.host;"></outline>
+					<outline text="dns.lookup (domain, null, function (err, ip) {">
+						<outline text="if (!err) {">
+							<outline isComment="true" text="console.log (&quot;server (&quot; + domain + &quot;) == &quot; + theMachines [ip]);"></outline>
+							<outline text="theStats.serverName = theMachines [ip];"></outline>
+							<outline text="statsChanged ();"></outline>
+							<outline text="}"></outline>
+							</outline>
+						<outline text="});"></outline>
+						</outline>
+					<outline text="if (callback !== undefined) {">
+						<outline text="callback ();"></outline>
+						<outline text="}"></outline>
+						</outline>
 					<outline text="}"></outline>
 					</outline>
-				<outline text="else {">
-					<outline text="theStats.ctConsecutiveErrors = 0;"></outline>
-					<outline text="console.log (theServer.name + &quot; is OK.&quot;);"></outline>
-					<outline text="}"></outline>
-					</outline>
-				<outline text="theStats.ctSecsLastCheck = utils.secondsSince (now);"></outline>
-				<outline text="statsChanged ();"></outline>
-				<outline text="if (callback !== undefined) {">
-					<outline text="callback ();"></outline>
+				<outline text="catch (err) {">
+					<outline text="stats.ctServerReadErrors++;"></outline>
 					<outline text="}"></outline>
 					</outline>
 				<outline text="});"></outline>
@@ -164,39 +203,64 @@
 					</outline>
 				<outline text="whenLastEveryMinute = now;"></outline>
 				</outline>
-			<outline text="request (urlServerList, function (err, response, jsontext) {">
-				<outline text="if (err) {">
-					<outline text="console.log (&quot;\neveryMinute: error reading serverlist == &quot; + err.message);"></outline>
-					<outline text="}"></outline>
-					</outline>
-				<outline text="else {">
-					<outline text="var servers = JSON.parse (jsontext);"></outline>
-					<outline isComment="true" text="console.log (&quot;\neveryMinute: servers == &quot; + utils.jsonStringify (servers));"></outline>
-					<outline text="for (var x in servers.theList) {">
-						<outline text="checkServer (servers.theList [x]);"></outline>
+			<outline text="try {">
+				<outline text="request (urlServerList, function (err, response, jsontext) {">
+					<outline text="if (err) {">
+						<outline text="console.log (&quot;\neveryMinute: error reading serverlist == &quot; + err.message);"></outline>
+						<outline text="stats.ctReadListErrors++;"></outline>
 						<outline text="}"></outline>
 						</outline>
-					<outline text="}"></outline>
+					<outline text="else {">
+						<outline text="var servers = JSON.parse (jsontext);"></outline>
+						<outline isComment="true" text="console.log (&quot;\neveryMinute: servers == &quot; + utils.jsonStringify (servers));"></outline>
+						<outline text="for (var x in servers.theList) {">
+							<outline text="checkServer (servers.theList [x], servers.theMachines);"></outline>
+							<outline text="}"></outline>
+							</outline>
+						<outline isComment="true" text="sendMailAboutServer (servers.theList [&quot;dave.pocalyp.se&quot;], &quot;This is just a test email to see what happens.&quot;)"></outline>
+						<outline text="}"></outline>
+						</outline>
+					<outline text="});"></outline>
 					</outline>
-				<outline text="});"></outline>
+				<outline text="}"></outline>
+				</outline>
+			<outline text="catch (err) {">
+				<outline text="stats.ctReadListErrors++;"></outline>
+				<outline text="}"></outline>
 				</outline>
 			<outline text="}"></outline>
 			</outline>
 		<outline text="function startup () {">
 			<outline text="console.log (&quot;\n&quot; + myProductName + &quot; v&quot; + myVerion);"></outline>
-			<outline text="fs.readFile (fnameStats, function (err, data) {">
+			<outline text="fs.readFile (fnameConfig, function (err, data) {">
 				<outline text="if (!err) {">
-					<outline text="stats = JSON.parse (data.toString ());"></outline>
+					<outline text="config = JSON.parse (data.toString ());"></outline>
+					<outline text="console.log (&quot;\nstartup: config == &quot; + utils.jsonStringify (config));"></outline>
 					<outline text="}"></outline>
 					</outline>
-				<outline text=""></outline>
-				<outline text="stats.ctServerStarts++;"></outline>
-				<outline text="stats.whenLastServerStart = new Date ();"></outline>
-				<outline text="statsChanged ();"></outline>
-				<outline text=""></outline>
-				<outline text="everyMinute ();"></outline>
-				<outline text="setInterval (everySecond, 1000); "></outline>
-				<outline text="setInterval (everyMinute, 60000); "></outline>
+				<outline text="fs.readFile (fnameStats, function (err, data) {">
+					<outline text="if (!err) {">
+						<outline text="stats = JSON.parse (data.toString ());"></outline>
+						<outline isComment="true" text="console.log (&quot;startup: stats == &quot; + utils.jsonStringify (stats));"></outline>
+						<outline text="if (stats.ctReadListErrors === undefined) { //7/24/16 by DW">
+							<outline text="stats.ctReadListErrors = 0;"></outline>
+							<outline text="}"></outline>
+							</outline>
+						<outline text="if (stats.ctServerReadErrors === undefined) { //7/24/16 by DW">
+							<outline text="stats.ctServerReadErrors = 0;"></outline>
+							<outline text="}"></outline>
+							</outline>
+						<outline text="}"></outline>
+						</outline>
+					<outline text="stats.ctServerStarts++;"></outline>
+					<outline text="stats.whenLastServerStart = new Date ();"></outline>
+					<outline text="statsChanged ();"></outline>
+					<outline text=""></outline>
+					<outline text="everyMinute ();"></outline>
+					<outline text="setInterval (everySecond, 1000); "></outline>
+					<outline text="setInterval (everyMinute, 60000); "></outline>
+					<outline text="});"></outline>
+					</outline>
 				<outline text="});"></outline>
 				</outline>
 			<outline text="}"></outline>

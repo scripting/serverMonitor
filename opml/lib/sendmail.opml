@@ -1,0 +1,67 @@
+<?xml encoding="ISO-8859-1" version="1.0"?>
+<opml version="2.0">
+	<head>
+		<title>lib/sendmail.js</title>
+		<dateModified>&lt;%dateModified%></dateModified>
+		<expansionState></expansionState>
+		<vertScrollState>1</vertScrollState>
+		<windowTop>300</windowTop>
+		<windowLeft>700</windowLeft>
+		<windowBottom>900</windowBottom>
+		<windowRight>1500</windowRight>
+		</head>
+	<body text="lib/sendmail.js">
+		<outline text="var AWS = require (&quot;aws-sdk&quot;);"></outline>
+		<outline text="var utils = require (&quot;../lib/utils.js&quot;);"></outline>
+		<outline text="var ses = new AWS.SES ({">
+			<outline text="apiVersion: &quot;2010-12-01&quot;,"></outline>
+			<outline text="region: &quot;us-east-1&quot;"></outline>
+			<outline text="});"></outline>
+			</outline>
+		<outline text=""></outline>
+		<outline text="exports.send = sendMail;"></outline>
+		<outline text=""></outline>
+		<outline text="function sendMail (recipient, subject, message, sender, callback) {">
+			<outline text="var theMail = {">
+				<outline text="Source: sender,"></outline>
+				<outline text="ReplyToAddresses: [sender],"></outline>
+				<outline text="ReturnPath: sender,"></outline>
+				<outline text="Destination: {">
+					<outline text="ToAddresses: [recipient]"></outline>
+					<outline text="},"></outline>
+					</outline>
+				<outline text="Message: {">
+					<outline text="Body: {">
+						<outline text="Html: {">
+							<outline text="Data: message"></outline>
+							<outline text="},"></outline>
+							</outline>
+						<outline text="Text: {">
+							<outline text="Data: utils.stripMarkup (message)"></outline>
+							<outline text="}"></outline>
+							</outline>
+						<outline text="},"></outline>
+						</outline>
+					<outline text="Subject: {">
+						<outline text="Data: subject"></outline>
+						<outline text="}"></outline>
+						</outline>
+					<outline text="},"></outline>
+					</outline>
+				<outline text="};"></outline>
+				</outline>
+			<outline text="ses.sendEmail (theMail, function (err, data) { ">
+				<outline text="if (err) {">
+					<outline text="console.log (&quot;\nsendMail: err.message == &quot; + err.message);"></outline>
+					<outline text="}"></outline>
+					</outline>
+				<outline text="else {">
+					<outline text="console.log (&quot;\nsendMail: data == &quot; + JSON.stringify (data, undefined, 4));"></outline>
+					<outline text="}"></outline>
+					</outline>
+				<outline text="});"></outline>
+				</outline>
+			<outline text="}"></outline>
+			</outline>
+		</body>
+	</opml>

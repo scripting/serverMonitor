@@ -1,4 +1,4 @@
-var myProductName = "Server Monitor", myVerion = "0.40g";
+var myProductName = "Server Monitor", myVerion = "0.43c";
 
 
 var request = require ("request");
@@ -7,12 +7,15 @@ var utils = require ("./lib/utils.js");
 var s3 = require ("./lib/s3.js");
 var rss = require ("./lib/rss.js");
 var dateFormat = require ("dateformat");
+var dns = require ("dns");
+var sendMail = require ("./lib/sendmail.js");
 
 var stats = {
 	productName: myProductName, version: myVerion,
 	ctServerStarts: 0, whenLastServerStart: new Date (0),
 	ctChanges: 0, whenLastChange: new Date (0),
 	ctSaves: 0, whenLastSave: new Date (0),
+	ctReadListErrors: 0, ctServerReadErrors: 0,  //7/24/16 by DW
 	servers: {
 		}
 	};
@@ -24,12 +27,26 @@ var urlServerList = "http://fargo.io/testing/servermonitor/serverlist.json";
 var servers;
 var whenLastEveryMinute = new Date ();
 
+var config = {};
+var whenLastEmailSent = new Date (0), minSecsBetwEmails = 30 * 60; //at most one email every half hour
+var fnameConfig = "config.json";
+
+function sendMailAboutServer (theServer, message) {
+	if ((config.emailSendTo !== undefined) && (config.emailSendTo !== undefined)) {
+		if (utils.secondsSince (whenLastEmailSent) > minSecsBetwEmails) {
+			var emailtext = "<p>There was a problem with a server: \"" + theServer.name + "\". </p><p>Message: \"" + message + "\"</p><p>To find out more visit http://sm.scripting.com/ </p>";
+			whenLastEmailSent = new Date ();
+			sendMail.send (config.emailSendTo, "serverMonitor problem", emailtext, config.emailSendFrom, function () {
+				});
+			}
+		}
+	}
 function statsChanged () {
 	stats.ctChanges++;
 	stats.whenLastChange = new Date ();
 	flStatsDirty = true;
 	}
-function checkServer (theServer, callback) {
+function checkServer (theServer, theMachines, callback) {
 	var theStats = stats.servers [theServer.name], now = new Date ();
 	if (theStats === undefined) {
 		theStats = {
@@ -52,21 +69,35 @@ function checkServer (theServer, callback) {
 	theStats.whenLastCheck = now;
 	statsChanged ();
 	request (theServer.url, function (err, response, s) {
-		if (err) {
-			theStats.ctErrors++;
-			theStats.ctConsecutiveErrors++;
-			theStats.ctErrorsToday++;
-			theStats.whenLastError = now;
-			console.log (theServer.name + " is not OK. err == " + err.message);
+		try {
+			if (err) {
+				theStats.ctErrors++;
+				theStats.ctConsecutiveErrors++;
+				theStats.ctErrorsToday++;
+				theStats.whenLastError = now;
+				console.log (theServer.name + " is not OK. err == " + err.message);
+				sendMailAboutServer (theServer, err.message);
+				}
+			else {
+				theStats.ctConsecutiveErrors = 0;
+				console.log (theServer.name + " is OK.");
+				}
+			theStats.ctSecsLastCheck = utils.secondsSince (now);
+			statsChanged ();
+			
+			var urlparts = utils.urlSplitter (theServer.url), domain = urlparts.host;
+			dns.lookup (domain, null, function (err, ip) {
+				if (!err) {
+					theStats.serverName = theMachines [ip];
+					statsChanged ();
+					}
+				});
+			if (callback !== undefined) {
+				callback ();
+				}
 			}
-		else {
-			theStats.ctConsecutiveErrors = 0;
-			console.log (theServer.name + " is OK.");
-			}
-		theStats.ctSecsLastCheck = utils.secondsSince (now);
-		statsChanged ();
-		if (callback !== undefined) {
-			callback ();
+		catch (err) {
+			stats.ctServerReadErrors++;
 			}
 		});
 	}
@@ -99,32 +130,49 @@ function everyMinute () {
 				}
 			}
 		whenLastEveryMinute = now;
-	request (urlServerList, function (err, response, jsontext) {
-		if (err) {
-			console.log ("\neveryMinute: error reading serverlist == " + err.message);
-			}
-		else {
-			var servers = JSON.parse (jsontext);
-			for (var x in servers.theList) {
-				checkServer (servers.theList [x]);
+	try {
+		request (urlServerList, function (err, response, jsontext) {
+			if (err) {
+				console.log ("\neveryMinute: error reading serverlist == " + err.message);
+				stats.ctReadListErrors++;
 				}
-			}
-		});
+			else {
+				var servers = JSON.parse (jsontext);
+				for (var x in servers.theList) {
+					checkServer (servers.theList [x], servers.theMachines);
+					}
+				}
+			});
+		}
+	catch (err) {
+		stats.ctReadListErrors++;
+		}
 	}
 function startup () {
 	console.log ("\n" + myProductName + " v" + myVerion);
-	fs.readFile (fnameStats, function (err, data) {
+	fs.readFile (fnameConfig, function (err, data) {
 		if (!err) {
-			stats = JSON.parse (data.toString ());
+			config = JSON.parse (data.toString ());
+			console.log ("\nstartup: config == " + utils.jsonStringify (config));
 			}
-		
-		stats.ctServerStarts++;
-		stats.whenLastServerStart = new Date ();
-		statsChanged ();
-		
-		everyMinute ();
-		setInterval (everySecond, 1000); 
-		setInterval (everyMinute, 60000); 
+		fs.readFile (fnameStats, function (err, data) {
+			if (!err) {
+				stats = JSON.parse (data.toString ());
+				if (stats.ctReadListErrors === undefined) { //7/24/16 by DW
+					stats.ctReadListErrors = 0;
+					}
+				if (stats.ctServerReadErrors === undefined) { //7/24/16 by DW
+					stats.ctServerReadErrors = 0;
+					}
+				}
+			stats.ctServerStarts++;
+			stats.whenLastServerStart = new Date ();
+			statsChanged ();
+			
+			everyMinute ();
+			setInterval (everySecond, 1000); 
+			setInterval (everyMinute, 60000); 
+			});
 		});
 	}
 startup ();
