@@ -11,7 +11,7 @@
 		<windowRight>1500</windowRight>
 		</head>
 	<body text="servermonitor.js">
-		<outline text="var myProductName = &quot;Server Monitor&quot;, myVerion = &quot;0.43c&quot;;"></outline>
+		<outline text="var myProductName = &quot;Server Monitor&quot;, myVerion = &quot;0.43d&quot;;"></outline>
 		<outline text=""></outline>
 		<outline isComment="true" text="Changes"></outline>
 		<outline text=""></outline>
@@ -50,10 +50,17 @@
 		<outline text="function sendMailAboutServer (theServer, message) {">
 			<outline text="if ((config.emailSendTo !== undefined) &amp;&amp; (config.emailSendTo !== undefined)) {">
 				<outline text="if (utils.secondsSince (whenLastEmailSent) &gt; minSecsBetwEmails) {">
-					<outline text="var emailtext = &quot;&lt;p&gt;There was a problem with a server: \&quot;&quot; + theServer.name + &quot;\&quot;. &lt;/p&gt;&lt;p&gt;Message: \&quot;&quot; + message + &quot;\&quot;&lt;/p&gt;&lt;p&gt;To find out more visit http://sm.scripting.com/ &lt;/p&gt;&quot;;"></outline>
-					<outline text="whenLastEmailSent = new Date ();"></outline>
-					<outline text="sendMail.send (config.emailSendTo, &quot;serverMonitor problem&quot;, emailtext, config.emailSendFrom, function () {">
-						<outline text="});"></outline>
+					<outline text="try {">
+						<outline text="var emailtext = &quot;&lt;p&gt;There was a problem with a server: \&quot;&quot; + theServer.name + &quot;\&quot;. &lt;/p&gt;&lt;p&gt;Message: \&quot;&quot; + message + &quot;\&quot;&lt;/p&gt;&lt;p&gt;To find out more visit http://sm.scripting.com/ &lt;/p&gt;&quot;;"></outline>
+						<outline text="whenLastEmailSent = new Date ();"></outline>
+						<outline text="sendMail.send (config.emailSendTo, &quot;serverMonitor problem&quot;, emailtext, config.emailSendFrom, function () {">
+							<outline text="});"></outline>
+							</outline>
+						<outline text="}"></outline>
+						</outline>
+					<outline text="catch (err) {">
+						<outline text="console.log (&quot;sendMailAboutServer: error sending mail == &quot; + err.message);"></outline>
+						<outline text="}"></outline>
 						</outline>
 					<outline text="}"></outline>
 					</outline>

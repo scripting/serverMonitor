@@ -1,4 +1,4 @@
-var myProductName = "Server Monitor", myVerion = "0.43c";
+var myProductName = "Server Monitor", myVerion = "0.43d";
 
 
 var request = require ("request");
@@ -34,10 +34,15 @@ var fnameConfig = "config.json";
 function sendMailAboutServer (theServer, message) {
 	if ((config.emailSendTo !== undefined) && (config.emailSendTo !== undefined)) {
 		if (utils.secondsSince (whenLastEmailSent) > minSecsBetwEmails) {
-			var emailtext = "<p>There was a problem with a server: \"" + theServer.name + "\". </p><p>Message: \"" + message + "\"</p><p>To find out more visit http://sm.scripting.com/ </p>";
-			whenLastEmailSent = new Date ();
-			sendMail.send (config.emailSendTo, "serverMonitor problem", emailtext, config.emailSendFrom, function () {
-				});
+			try {
+				var emailtext = "<p>There was a problem with a server: \"" + theServer.name + "\". </p><p>Message: \"" + message + "\"</p><p>To find out more visit http://sm.scripting.com/ </p>";
+				whenLastEmailSent = new Date ();
+				sendMail.send (config.emailSendTo, "serverMonitor problem", emailtext, config.emailSendFrom, function () {
+					});
+				}
+			catch (err) {
+				console.log ("sendMailAboutServer: error sending mail == " + err.message);
+				}
 			}
 		}
 	}
