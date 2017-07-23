@@ -11,7 +11,7 @@
 		<windowRight>1500</windowRight>
 		</head>
 	<body text="lib/sendmail.js">
-		<outline text="var AWS = require (&quot;aws-sdk&quot;);"></outline>
+		<outline text="var AWS = require (&quot;aws-sdk&quot;); "></outline>
 		<outline text="var utils = require (&quot;../lib/utils.js&quot;);"></outline>
 		<outline text="var ses = new AWS.SES ({">
 			<outline text="apiVersion: &quot;2010-12-01&quot;,"></outline>
