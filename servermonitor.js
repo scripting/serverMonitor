@@ -1,4 +1,4 @@
-var myProductName = "Server Monitor", myVerion = "0.43d";
+var myProductName = "Server Monitor", myVerion = "0.44a";
 
 
 var request = require ("request");
@@ -22,6 +22,7 @@ var stats = {
 var flStatsDirty = false;
 var fnameStats = "stats.json";
 var s3statspath = "/fargo.io/testing/servermonitor/stats.json";
+var flEveryMinuteScheduled = false;
 
 var urlServerList = "http://fargo.io/testing/servermonitor/serverlist.json"; 
 var servers;
@@ -106,23 +107,6 @@ function checkServer (theServer, theMachines, callback) {
 			}
 		});
 	}
-function everySecond () {
-	if (flStatsDirty) {
-		stats.ctSaves++;
-		stats.whenLastSave = new Date ();
-		stats.productName = myProductName;
-		stats.version = myVerion;
-		
-		var jsontext = utils.jsonStringify (stats);
-		fs.writeFile (fnameStats, jsontext, function (err) {
-			if (err) {
-				console.log ("everySecond: error writing stats file == " + err.message);
-				}
-			});
-		s3.newObject (s3statspath, jsontext);
-		flStatsDirty = false;
-		}
-	}
 function everyMinute () {
 	var now = new Date ();
 	console.log ("\neveryMinute: " + now.toLocaleTimeString () + ", v" + myVerion);
@@ -153,6 +137,31 @@ function everyMinute () {
 		stats.ctReadListErrors++;
 		}
 	}
+function everySecond () {
+	var now = new Date ();
+	if (flStatsDirty) {
+		stats.ctSaves++;
+		stats.whenLastSave = new Date ();
+		stats.productName = myProductName;
+		stats.version = myVerion;
+		
+		var jsontext = utils.jsonStringify (stats);
+		fs.writeFile (fnameStats, jsontext, function (err) {
+			if (err) {
+				console.log ("everySecond: error writing stats file == " + err.message);
+				}
+			});
+		s3.newObject (s3statspath, jsontext);
+		flStatsDirty = false;
+		}
+	if (!flEveryMinuteScheduled) {
+		if (now.getSeconds () == 0) {
+			flEveryMinuteScheduled = true;
+			setInterval (everyMinute, 60000); 
+			everyMinute (); //do one right now
+			}
+		}
+	}
 function startup () {
 	console.log ("\n" + myProductName + " v" + myVerion);
 	fs.readFile (fnameConfig, function (err, data) {
@@ -176,7 +185,6 @@ function startup () {
 			
 			everyMinute ();
 			setInterval (everySecond, 1000); 
-			setInterval (everyMinute, 60000); 
 			});
 		});
 	}
