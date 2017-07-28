@@ -11,9 +11,13 @@
 		<windowRight>1500</windowRight>
 		</head>
 	<body text="servermonitor.js">
-		<outline text="var myProductName = &quot;Server Monitor&quot;, myVerion = &quot;0.44a&quot;;"></outline>
+		<outline text="var myProductName = &quot;Server Monitor&quot;, myVerion = &quot;0.44b&quot;;"></outline>
 		<outline text=""></outline>
-		<outline isComment="true" text="Changes"></outline>
+		<outline isComment="true" text="Changes">
+			<outline text="7/28/17; 5:26:30 PM by DW">
+				<outline text="&quot;connect ECONNREFUSED&quot; is flagged as an error."></outline>
+				</outline>
+			</outline>
 		<outline text=""></outline>
 		<outline text="var request = require (&quot;request&quot;);"></outline>
 		<outline text="var fs = require (&quot;fs&quot;);"></outline>
@@ -47,6 +51,7 @@
 		<outline text="var config = {};"></outline>
 		<outline text="var whenLastEmailSent = new Date (0), minSecsBetwEmails = 30 * 60; //at most one email every half hour"></outline>
 		<outline text="var fnameConfig = &quot;config.json&quot;;"></outline>
+		<outline text="const connectionRefusedMsg = &quot;connect ECONNREFUSED&quot;;"></outline>
 		<outline text=""></outline>
 		<outline text="function sendMailAboutServer (theServer, message) {">
 			<outline text="if ((config.emailSendTo !== undefined) &amp;&amp; (config.emailSendTo !== undefined)) {">
@@ -133,19 +138,38 @@
 			<outline text="theStats.whenLastCheck = now;"></outline>
 			<outline text="statsChanged ();"></outline>
 			<outline text="request (theServer.url, function (err, response, s) {">
+				<outline text="function reportError (msg) {">
+					<outline text="theStats.ctErrors++;"></outline>
+					<outline text="theStats.ctConsecutiveErrors++;"></outline>
+					<outline text="theStats.ctErrorsToday++;"></outline>
+					<outline text="theStats.whenLastError = now;"></outline>
+					<outline text="console.log (theServer.name + &quot; is not OK. err == &quot; + msg);"></outline>
+					<outline text="sendMailAboutServer (theServer, msg);"></outline>
+					<outline text="}"></outline>
+					</outline>
 				<outline text="try {">
 					<outline text="if (err) {">
-						<outline text="theStats.ctErrors++;"></outline>
-						<outline text="theStats.ctConsecutiveErrors++;"></outline>
-						<outline text="theStats.ctErrorsToday++;"></outline>
-						<outline text="theStats.whenLastError = now;"></outline>
-						<outline text="console.log (theServer.name + &quot; is not OK. err == &quot; + err.message);"></outline>
-						<outline text="sendMailAboutServer (theServer, err.message);"></outline>
+						<outline text="reportError (err.message);"></outline>
+						<outline isComment="true" text="theStats.ctErrors++;"></outline>
+						<outline isComment="true" text="theStats.ctConsecutiveErrors++;"></outline>
+						<outline isComment="true" text="theStats.ctErrorsToday++;"></outline>
+						<outline isComment="true" text="theStats.whenLastError = now;"></outline>
+						<outline isComment="true" text="console.log (theServer.name + &quot; is not OK. err == &quot; + err.message);"></outline>
+						<outline isComment="true" text="sendMailAboutServer (theServer, err.message);"></outline>
 						<outline text="}"></outline>
 						</outline>
 					<outline text="else {">
-						<outline text="theStats.ctConsecutiveErrors = 0;"></outline>
-						<outline text="console.log (theServer.name + &quot; is OK.&quot;);"></outline>
+						<outline text="if (utils.beginsWith (s, connectionRefusedMsg)) {">
+							<outline text="reportError (connectionRefusedMsg);"></outline>
+							<outline text="}"></outline>
+							</outline>
+						<outline text="else {">
+							<outline text="theStats.ctConsecutiveErrors = 0;"></outline>
+							<outline text="console.log (theServer.name + &quot; is OK.&quot;);"></outline>
+							<outline text="}"></outline>
+							</outline>
+						<outline text=""></outline>
+						<outline text=""></outline>
 						<outline text="}"></outline>
 						</outline>
 					<outline text="theStats.ctSecsLastCheck = utils.secondsSince (now);"></outline>

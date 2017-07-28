@@ -1,4 +1,4 @@
-var myProductName = "Server Monitor", myVerion = "0.44a";
+var myProductName = "Server Monitor", myVerion = "0.44b";
 
 
 var request = require ("request");
@@ -31,6 +31,7 @@ var whenLastEveryMinute = new Date ();
 var config = {};
 var whenLastEmailSent = new Date (0), minSecsBetwEmails = 30 * 60; //at most one email every half hour
 var fnameConfig = "config.json";
+const connectionRefusedMsg = "connect ECONNREFUSED";
 
 function sendMailAboutServer (theServer, message) {
 	if ((config.emailSendTo !== undefined) && (config.emailSendTo !== undefined)) {
@@ -75,18 +76,28 @@ function checkServer (theServer, theMachines, callback) {
 	theStats.whenLastCheck = now;
 	statsChanged ();
 	request (theServer.url, function (err, response, s) {
+		function reportError (msg) {
+			theStats.ctErrors++;
+			theStats.ctConsecutiveErrors++;
+			theStats.ctErrorsToday++;
+			theStats.whenLastError = now;
+			console.log (theServer.name + " is not OK. err == " + msg);
+			sendMailAboutServer (theServer, msg);
+			}
 		try {
 			if (err) {
-				theStats.ctErrors++;
-				theStats.ctConsecutiveErrors++;
-				theStats.ctErrorsToday++;
-				theStats.whenLastError = now;
-				console.log (theServer.name + " is not OK. err == " + err.message);
-				sendMailAboutServer (theServer, err.message);
+				reportError (err.message);
 				}
 			else {
-				theStats.ctConsecutiveErrors = 0;
-				console.log (theServer.name + " is OK.");
+				if (utils.beginsWith (s, connectionRefusedMsg)) {
+					reportError (connectionRefusedMsg);
+					}
+				else {
+					theStats.ctConsecutiveErrors = 0;
+					console.log (theServer.name + " is OK.");
+					}
+				
+				
 				}
 			theStats.ctSecsLastCheck = utils.secondsSince (now);
 			statsChanged ();
