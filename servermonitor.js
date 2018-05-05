@@ -1,4 +1,4 @@
-var myProductName = "Server Monitor", myVerion = "0.44b";
+var myProductName = "Server Monitor", myVerion = "0.5.0";
 
 
 var request = require ("request");
@@ -118,35 +118,69 @@ function checkServer (theServer, theMachines, callback) {
 			}
 		});
 	}
+
+function readConfig (callback) {
+	fs.readFile (fnameConfig, function (err, data) {
+		if (!err) {
+			config = JSON.parse (data.toString ());
+			}
+		if (callback !== undefined) {
+			callback ();
+			}
+		});
+	}
+function readStats (callback) {
+	fs.readFile (fnameStats, function (err, data) {
+		if (!err) {
+			stats = JSON.parse (data.toString ());
+			if (stats.ctReadListErrors === undefined) { //7/24/16 by DW
+				stats.ctReadListErrors = 0;
+				}
+			if (stats.ctServerReadErrors === undefined) { //7/24/16 by DW
+				stats.ctServerReadErrors = 0;
+				}
+			stats.ctServerStarts++;
+			stats.whenLastServerStart = new Date ();
+			statsChanged ();
+			}
+		if (callback !== undefined) {
+			callback ();
+			}
+		});
+	}
+
+
 function everyMinute () {
 	var now = new Date ();
-	console.log ("\neveryMinute: " + now.toLocaleTimeString () + ", v" + myVerion);
-	//rollovers
-		if (!utils.sameDay (now, whenLastEveryMinute)) {
-			for (x in stats.servers) {
-				var server = stats.servers [x];
-				server.ctChecksToday = 0;
-				server.ctErrorsToday = 0;
-				}
-			}
-		whenLastEveryMinute = now;
-	try {
-		request (urlServerList, function (err, response, jsontext) {
-			if (err) {
-				console.log ("\neveryMinute: error reading serverlist == " + err.message);
-				stats.ctReadListErrors++;
-				}
-			else {
-				var servers = JSON.parse (jsontext);
-				for (var x in servers.theList) {
-					checkServer (servers.theList [x], servers.theMachines);
+	readConfig (function () {
+		console.log ("\neveryMinute: " + now.toLocaleTimeString () + ", v" + myVerion);
+		//rollovers
+			if (!utils.sameDay (now, whenLastEveryMinute)) {
+				for (x in stats.servers) {
+					var server = stats.servers [x];
+					server.ctChecksToday = 0;
+					server.ctErrorsToday = 0;
 					}
 				}
-			});
-		}
-	catch (err) {
-		stats.ctReadListErrors++;
-		}
+			whenLastEveryMinute = now;
+		try {
+			request (urlServerList, function (err, response, jsontext) {
+				if (err) {
+					console.log ("\neveryMinute: error reading serverlist == " + err.message);
+					stats.ctReadListErrors++;
+					}
+				else {
+					var servers = JSON.parse (jsontext);
+					for (var x in servers.theList) {
+						checkServer (servers.theList [x], servers.theMachines);
+						}
+					}
+				});
+			}
+		catch (err) {
+			stats.ctReadListErrors++;
+			}
+		});
 	}
 function everySecond () {
 	var now = new Date ();
@@ -175,25 +209,9 @@ function everySecond () {
 	}
 function startup () {
 	console.log ("\n" + myProductName + " v" + myVerion);
-	fs.readFile (fnameConfig, function (err, data) {
-		if (!err) {
-			config = JSON.parse (data.toString ());
-			console.log ("\nstartup: config == " + utils.jsonStringify (config));
-			}
-		fs.readFile (fnameStats, function (err, data) {
-			if (!err) {
-				stats = JSON.parse (data.toString ());
-				if (stats.ctReadListErrors === undefined) { //7/24/16 by DW
-					stats.ctReadListErrors = 0;
-					}
-				if (stats.ctServerReadErrors === undefined) { //7/24/16 by DW
-					stats.ctServerReadErrors = 0;
-					}
-				}
-			stats.ctServerStarts++;
-			stats.whenLastServerStart = new Date ();
-			statsChanged ();
-			
+	readConfig (function () {
+		console.log ("\nstartup: config == " + utils.jsonStringify (config));
+		readStats (function () {
 			everyMinute ();
 			setInterval (everySecond, 1000); 
 			});
