@@ -11,7 +11,7 @@
 		<windowRight>1500</windowRight>
 		</head>
 	<body text="servermonitor.js">
-		<outline text="var myProductName = &quot;Server Monitor&quot;, myVerion = &quot;0.5.0&quot;;"></outline>
+		<outline text="var myProductName = &quot;Server Monitor&quot;, myVerion = &quot;0.5.1&quot;;"></outline>
 		<outline text=""></outline>
 		<outline isComment="true" text="Changes">
 			<outline text="7/28/17; 5:26:30 PM by DW">
@@ -41,14 +41,18 @@
 			</outline>
 		<outline text="var flStatsDirty = false;"></outline>
 		<outline text="var fnameStats = &quot;stats.json&quot;;"></outline>
-		<outline text="var s3statspath = &quot;/fargo.io/testing/servermonitor/stats.json&quot;;"></outline>
+		<outline isComment="true" text="var s3statspath = &quot;/fargo.io/testing/servermonitor/stats.json&quot;;"></outline>
 		<outline text="var flEveryMinuteScheduled = false;"></outline>
 		<outline text=""></outline>
 		<outline text="var urlServerList = &quot;http://fargo.io/testing/servermonitor/serverlist.json&quot;; "></outline>
 		<outline text="var servers;"></outline>
 		<outline text="var whenLastEveryMinute = new Date ();"></outline>
 		<outline text=""></outline>
-		<outline text="var config = {};"></outline>
+		<outline text="var config = {">
+			<outline text="s3statspath: &quot;/fargo.io/testing/servermonitor/stats.json&quot;,"></outline>
+			<outline text="urlServerList: &quot;http://fargo.io/testing/servermonitor/serverlist.json&quot;"></outline>
+			<outline text="};"></outline>
+			</outline>
 		<outline text="var whenLastEmailSent = new Date (0), minSecsBetwEmails = 30 * 60; //at most one email every half hour"></outline>
 		<outline text="var fnameConfig = &quot;config.json&quot;;"></outline>
 		<outline text="const connectionRefusedMsg = &quot;connect ECONNREFUSED&quot;;"></outline>
@@ -203,7 +207,11 @@
 		<outline text="function readConfig (callback) {">
 			<outline text="fs.readFile (fnameConfig, function (err, data) {">
 				<outline text="if (!err) {">
-					<outline text="config = JSON.parse (data.toString ());"></outline>
+					<outline text="var jstruct = JSON.parse (data.toString ());"></outline>
+					<outline text="for (var x in jstruct) {">
+						<outline text="config [x] = jstruct [x];"></outline>
+						<outline text="}"></outline>
+						</outline>
 					<outline text="}"></outline>
 					</outline>
 				<outline text="if (callback !== undefined) {">
@@ -258,7 +266,7 @@
 					<outline text="whenLastEveryMinute = now;"></outline>
 					</outline>
 				<outline text="try {">
-					<outline text="request (urlServerList, function (err, response, jsontext) {">
+					<outline text="request (config.urlServerList, function (err, response, jsontext) {">
 						<outline text="if (err) {">
 							<outline text="console.log (&quot;\neveryMinute: error reading serverlist == &quot; + err.message);"></outline>
 							<outline text="stats.ctReadListErrors++;"></outline>
@@ -302,7 +310,7 @@
 						</outline>
 					<outline text="});"></outline>
 					</outline>
-				<outline text="s3.newObject (s3statspath, jsontext);"></outline>
+				<outline text="s3.newObject (config.s3statspath, jsontext);"></outline>
 				<outline text="flStatsDirty = false;"></outline>
 				<outline text="}"></outline>
 				</outline>

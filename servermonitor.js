@@ -1,4 +1,4 @@
-var myProductName = "Server Monitor", myVerion = "0.5.0";
+var myProductName = "Server Monitor", myVerion = "0.5.1";
 
 
 var request = require ("request");
@@ -21,14 +21,16 @@ var stats = {
 	};
 var flStatsDirty = false;
 var fnameStats = "stats.json";
-var s3statspath = "/fargo.io/testing/servermonitor/stats.json";
 var flEveryMinuteScheduled = false;
 
 var urlServerList = "http://fargo.io/testing/servermonitor/serverlist.json"; 
 var servers;
 var whenLastEveryMinute = new Date ();
 
-var config = {};
+var config = {
+	s3statspath: "/fargo.io/testing/servermonitor/stats.json",
+	urlServerList: "http://fargo.io/testing/servermonitor/serverlist.json"
+	};
 var whenLastEmailSent = new Date (0), minSecsBetwEmails = 30 * 60; //at most one email every half hour
 var fnameConfig = "config.json";
 const connectionRefusedMsg = "connect ECONNREFUSED";
@@ -122,7 +124,10 @@ function checkServer (theServer, theMachines, callback) {
 function readConfig (callback) {
 	fs.readFile (fnameConfig, function (err, data) {
 		if (!err) {
-			config = JSON.parse (data.toString ());
+			var jstruct = JSON.parse (data.toString ());
+			for (var x in jstruct) {
+				config [x] = jstruct [x];
+				}
 			}
 		if (callback !== undefined) {
 			callback ();
@@ -164,7 +169,7 @@ function everyMinute () {
 				}
 			whenLastEveryMinute = now;
 		try {
-			request (urlServerList, function (err, response, jsontext) {
+			request (config.urlServerList, function (err, response, jsontext) {
 				if (err) {
 					console.log ("\neveryMinute: error reading serverlist == " + err.message);
 					stats.ctReadListErrors++;
@@ -196,7 +201,7 @@ function everySecond () {
 				console.log ("everySecond: error writing stats file == " + err.message);
 				}
 			});
-		s3.newObject (s3statspath, jsontext);
+		s3.newObject (config.s3statspath, jsontext);
 		flStatsDirty = false;
 		}
 	if (!flEveryMinuteScheduled) {
