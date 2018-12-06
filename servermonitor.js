@@ -1,4 +1,4 @@
-var myProductName = "Server Monitor", myVerion = "0.5.1";
+var myProductName = "Server Monitor", myVerion = "0.5.4";
 
 
 var request = require ("request");
@@ -17,6 +17,8 @@ var stats = {
 	ctSaves: 0, whenLastSave: new Date (0),
 	ctReadListErrors: 0, ctServerReadErrors: 0,  //7/24/16 by DW
 	servers: {
+		},
+	machines: {
 		}
 	};
 var flStatsDirty = false;
@@ -121,6 +123,25 @@ function checkServer (theServer, theMachines, callback) {
 		});
 	}
 
+function checkMachine (theMachine) {
+	var url = "http://scripting.com/code/freediskspace/data/" + theMachine + ".json";
+	request (url, function (err, response, jsontext) {
+		try {
+			if ((jsontext.length > 0) && (jsontext [0] == "{")) {
+				var jstruct = JSON.parse (jsontext);
+				if (stats.machines === undefined) {
+					stats.machines = {}
+					}
+				stats.machines [theMachine] = jstruct;
+				console.log ("checkMachine: stats.machines == " + utils.jsonStringify (stats.machines));
+				}
+			}
+		catch (err) {
+			console.log ("checkMachine: err == " + err);
+			}
+		});
+	}
+
 function readConfig (callback) {
 	fs.readFile (fnameConfig, function (err, data) {
 		if (!err) {
@@ -154,7 +175,6 @@ function readStats (callback) {
 		});
 	}
 
-
 function everyMinute () {
 	var now = new Date ();
 	readConfig (function () {
@@ -176,8 +196,12 @@ function everyMinute () {
 					}
 				else {
 					var servers = JSON.parse (jsontext);
+					console.log ("\neveryMinute: servers == " + utils.jsonStringify (servers));
 					for (var x in servers.theList) {
 						checkServer (servers.theList [x], servers.theMachines);
+						}
+					for (var x in servers.theMachines) { //12/6/18 by DW
+						checkMachine (servers.theMachines [x]);
 						}
 					}
 				});

@@ -11,7 +11,7 @@
 		<windowRight>1500</windowRight>
 		</head>
 	<body text="servermonitor.js">
-		<outline text="var myProductName = &quot;Server Monitor&quot;, myVerion = &quot;0.5.1&quot;;"></outline>
+		<outline text="var myProductName = &quot;Server Monitor&quot;, myVerion = &quot;0.5.4&quot;;"></outline>
 		<outline text=""></outline>
 		<outline isComment="true" text="Changes">
 			<outline text="7/28/17; 5:26:30 PM by DW">
@@ -35,6 +35,9 @@
 			<outline text="ctSaves: 0, whenLastSave: new Date (0),"></outline>
 			<outline text="ctReadListErrors: 0, ctServerReadErrors: 0,  //7/24/16 by DW"></outline>
 			<outline text="servers: {">
+				<outline text="},"></outline>
+				</outline>
+			<outline text="machines: {">
 				<outline text="}"></outline>
 				</outline>
 			<outline text="};"></outline>
@@ -204,6 +207,32 @@
 			<outline text="}"></outline>
 			</outline>
 		<outline text=""></outline>
+		<outline text="function checkMachine (theMachine) {">
+			<outline text="var url = &quot;http://scripting.com/code/freediskspace/data/&quot; + theMachine + &quot;.json&quot;;"></outline>
+			<outline isComment="true" text="console.log (&quot;checkMachine: url == &quot; + url);"></outline>
+			<outline text="request (url, function (err, response, jsontext) {">
+				<outline text="try {">
+					<outline text="if ((jsontext.length &gt; 0) &amp;&amp; (jsontext [0] == &quot;{&quot;)) {">
+						<outline text="var jstruct = JSON.parse (jsontext);"></outline>
+						<outline text="if (stats.machines === undefined) {">
+							<outline text="stats.machines = {}"></outline>
+							<outline text="}"></outline>
+							</outline>
+						<outline text="stats.machines [theMachine] = jstruct;"></outline>
+						<outline text="console.log (&quot;checkMachine: stats.machines == &quot; + utils.jsonStringify (stats.machines));"></outline>
+						<outline text="}"></outline>
+						</outline>
+					<outline text="}"></outline>
+					</outline>
+				<outline text="catch (err) {">
+					<outline text="console.log (&quot;checkMachine: err == &quot; + err);"></outline>
+					<outline text="}"></outline>
+					</outline>
+				<outline text="});"></outline>
+				</outline>
+			<outline text="}"></outline>
+			</outline>
+		<outline text=""></outline>
 		<outline text="function readConfig (callback) {">
 			<outline text="fs.readFile (fnameConfig, function (err, data) {">
 				<outline text="if (!err) {">
@@ -248,7 +277,6 @@
 			<outline text="}"></outline>
 			</outline>
 		<outline text=""></outline>
-		<outline text=""></outline>
 		<outline text="function everyMinute () {">
 			<outline text="var now = new Date ();"></outline>
 			<outline text="readConfig (function () {">
@@ -274,9 +302,13 @@
 							</outline>
 						<outline text="else {">
 							<outline text="var servers = JSON.parse (jsontext);"></outline>
-							<outline isComment="true" text="console.log (&quot;\neveryMinute: servers == &quot; + utils.jsonStringify (servers));"></outline>
+							<outline text="console.log (&quot;\neveryMinute: servers == &quot; + utils.jsonStringify (servers));"></outline>
 							<outline text="for (var x in servers.theList) {">
 								<outline text="checkServer (servers.theList [x], servers.theMachines);"></outline>
+								<outline text="}"></outline>
+								</outline>
+							<outline text="for (var x in servers.theMachines) { //12/6/18 by DW">
+								<outline text="checkMachine (servers.theMachines [x]);"></outline>
 								<outline text="}"></outline>
 								</outline>
 							<outline isComment="true" text="sendMailAboutServer (servers.theList [&quot;dave.pocalyp.se&quot;], &quot;This is just a test email to see what happens.&quot;)"></outline>
