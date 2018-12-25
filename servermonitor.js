@@ -1,8 +1,9 @@
-var myProductName = "Server Monitor", myVerion = "0.5.4";
+var myProductName = "Server Monitor", myVerion = "0.5.6";
 
 
 var request = require ("request");
 var fs = require ("fs");
+var os = require ("os");
 var utils = require ("./lib/utils.js");
 var s3 = require ("./lib/s3.js");
 var rss = require ("./lib/rss.js");
@@ -16,6 +17,7 @@ var stats = {
 	ctChanges: 0, whenLastChange: new Date (0),
 	ctSaves: 0, whenLastSave: new Date (0),
 	ctReadListErrors: 0, ctServerReadErrors: 0,  //7/24/16 by DW
+	ipAddressServer: undefined, //12/24/18 by DW -- so we can tell where servermonitor is running
 	servers: {
 		},
 	machines: {
@@ -133,7 +135,6 @@ function checkMachine (theMachine) {
 					stats.machines = {}
 					}
 				stats.machines [theMachine] = jstruct;
-				console.log ("checkMachine: stats.machines == " + utils.jsonStringify (stats.machines));
 				}
 			}
 		catch (err) {
@@ -236,11 +237,24 @@ function everySecond () {
 			}
 		}
 	}
+function getMyIpAddress () { //12/24/18 by DW
+	var interfaces = os.networkInterfaces ();
+	for (var devName in interfaces) {
+		var iface = interfaces [devName];
+		for (var i = 0; i < iface.length; i++) {
+			var alias = iface [i];
+			if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal)
+				return (alias.address);
+				}
+		}
+	return ("0.0.0.0");
+	}
 function startup () {
 	console.log ("\n" + myProductName + " v" + myVerion);
 	readConfig (function () {
 		console.log ("\nstartup: config == " + utils.jsonStringify (config));
 		readStats (function () {
+			stats.ipAddressServer = getMyIpAddress (); //12/24/18 by DW
 			everyMinute ();
 			setInterval (everySecond, 1000); 
 			});

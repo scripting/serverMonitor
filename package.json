@@ -2,10 +2,11 @@
 	"name": "serverMonitor",
 	"description": "Keep a table of my servers indicating which ones are happy or not.",
 	"author": "Dave Winer <dave@smallpicture.com>",
-	"version": "0.5.4",
+	"version": "0.5.6",
 	"dependencies" : {
 		"aws-sdk": "*", 
 		"request": "*",
+		"os": "*",
 		"dateformat": "*"
 		}, 
 	"license": "MIT",
