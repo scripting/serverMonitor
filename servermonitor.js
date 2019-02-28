@@ -1,11 +1,11 @@
-var myProductName = "Server Monitor", myVerion = "0.5.6";
+var myProductName = "Server Monitor", myVerion = "0.5.10";
 
 
 var request = require ("request");
 var fs = require ("fs");
 var os = require ("os");
-var utils = require ("./lib/utils.js");
-var s3 = require ("./lib/s3.js");
+var utils = require ("daveutils");
+var s3 = require ("daves3");
 var rss = require ("./lib/rss.js");
 var dateFormat = require ("dateformat");
 var dns = require ("dns");
@@ -13,7 +13,7 @@ var sendMail = require ("./lib/sendmail.js");
 
 var stats = {
 	productName: myProductName, version: myVerion,
-	ctServerStarts: 0, whenLastServerStart: new Date (0),
+	ctServerStarts: 0, whenLastServerStart: new Date (),
 	ctChanges: 0, whenLastChange: new Date (0),
 	ctSaves: 0, whenLastSave: new Date (0),
 	ctReadListErrors: 0, ctServerReadErrors: 0,  //7/24/16 by DW
@@ -27,13 +27,13 @@ var flStatsDirty = false;
 var fnameStats = "stats.json";
 var flEveryMinuteScheduled = false;
 
-var urlServerList = "http://fargo.io/testing/servermonitor/serverlist.json"; 
 var servers;
 var whenLastEveryMinute = new Date ();
+var whenLastSaveStats = new Date ();
 
 var config = {
-	s3statspath: "/fargo.io/testing/servermonitor/stats.json",
-	urlServerList: "http://fargo.io/testing/servermonitor/serverlist.json"
+	s3statspath: "/scripting.com/code/servermonitor/stats.json",
+	urlServerList: "http://scripting.com/code/servermonitor/serverlist.json"
 	};
 var whenLastEmailSent = new Date (0), minSecsBetwEmails = 30 * 60; //at most one email every half hour
 var fnameConfig = "config.json";
@@ -88,7 +88,9 @@ function checkServer (theServer, theMachines, callback) {
 			theStats.ctErrorsToday++;
 			theStats.whenLastError = now;
 			console.log (theServer.name + " is not OK. err == " + msg);
-			sendMailAboutServer (theServer, msg);
+			if (theStats.ctConsecutiveErrors > 1) { //1/31/19 by DW
+				sendMailAboutServer (theServer, msg);
+				}
 			}
 		try {
 			if (err) {
@@ -102,16 +104,22 @@ function checkServer (theServer, theMachines, callback) {
 					theStats.ctConsecutiveErrors = 0;
 					console.log (theServer.name + " is OK.");
 					}
-				
-				
 				}
 			theStats.ctSecsLastCheck = utils.secondsSince (now);
 			statsChanged ();
 			
+			
 			var urlparts = utils.urlSplitter (theServer.url), domain = urlparts.host;
 			dns.lookup (domain, null, function (err, ip) {
-				if (!err) {
-					theStats.serverName = theMachines [ip];
+				if (err) {
+					console.log ("dns.lookup: err.message == " + err.message);
+					}
+				else {
+					
+					if (theMachines [ip] !== undefined) {
+						theStats.serverName = theMachines [ip];
+						}
+					
 					statsChanged ();
 					}
 				});
@@ -166,12 +174,31 @@ function readStats (callback) {
 			if (stats.ctServerReadErrors === undefined) { //7/24/16 by DW
 				stats.ctServerReadErrors = 0;
 				}
-			stats.ctServerStarts++;
-			stats.whenLastServerStart = new Date ();
 			statsChanged ();
 			}
 		if (callback !== undefined) {
 			callback ();
+			}
+		});
+	}
+function saveStats (callback) { //2/26/19 by DW
+	stats.ctSaves++;
+	stats.whenLastSave = new Date ();
+	stats.productName = myProductName;
+	stats.version = myVerion;
+	
+	var jsontext = utils.jsonStringify (stats);
+	fs.writeFile (fnameStats, jsontext, function (err) {
+		if (err) {
+			console.log ("saveStats: error writing stats file == " + err.message);
+			}
+		});
+	s3.newObject (config.s3statspath, jsontext, undefined, undefined, function (err, data) {
+		if (err) {
+			console.log ("saveStats: err == " + utils.jsonStringify (err));
+			}
+		else {
+			console.log ("saveStats: config.s3statspath == " + config.s3statspath);
 			}
 		});
 	}
@@ -197,7 +224,6 @@ function everyMinute () {
 					}
 				else {
 					var servers = JSON.parse (jsontext);
-					console.log ("\neveryMinute: servers == " + utils.jsonStringify (servers));
 					for (var x in servers.theList) {
 						checkServer (servers.theList [x], servers.theMachines);
 						}
@@ -215,19 +241,11 @@ function everyMinute () {
 function everySecond () {
 	var now = new Date ();
 	if (flStatsDirty) {
-		stats.ctSaves++;
-		stats.whenLastSave = new Date ();
-		stats.productName = myProductName;
-		stats.version = myVerion;
-		
-		var jsontext = utils.jsonStringify (stats);
-		fs.writeFile (fnameStats, jsontext, function (err) {
-			if (err) {
-				console.log ("everySecond: error writing stats file == " + err.message);
-				}
-			});
-		s3.newObject (config.s3statspath, jsontext);
-		flStatsDirty = false;
+		if (utils.secondsSince (whenLastSaveStats) > 3) {
+			saveStats ();
+			whenLastSaveStats = new Date ();
+			flStatsDirty = false;
+			}
 		}
 	if (!flEveryMinuteScheduled) {
 		if (now.getSeconds () == 0) {
@@ -255,6 +273,9 @@ function startup () {
 		console.log ("\nstartup: config == " + utils.jsonStringify (config));
 		readStats (function () {
 			stats.ipAddressServer = getMyIpAddress (); //12/24/18 by DW
+			stats.ctServerStarts++;
+			stats.whenLastServerStart = new Date ();
+			statsChanged ();
 			everyMinute ();
 			setInterval (everySecond, 1000); 
 			});

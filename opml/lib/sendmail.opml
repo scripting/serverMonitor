@@ -12,7 +12,8 @@
 		</head>
 	<body text="lib/sendmail.js">
 		<outline text="var AWS = require (&quot;aws-sdk&quot;); "></outline>
-		<outline text="var utils = require (&quot;../lib/utils.js&quot;);"></outline>
+		<outline text="var utils = require (&quot;daveutils&quot;);"></outline>
+		<outline isComment="true" text="var utils = require (&quot;../lib/utils.js&quot;);"></outline>
 		<outline text="var ses = new AWS.SES ({">
 			<outline text="apiVersion: &quot;2010-12-01&quot;,"></outline>
 			<outline text="region: &quot;us-east-1&quot;"></outline>
