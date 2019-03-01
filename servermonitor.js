@@ -1,15 +1,15 @@
-var myProductName = "Server Monitor", myVerion = "0.5.10";
+var myProductName = "Server Monitor", myVerion = "0.5.11";
 
-
-var request = require ("request");
-var fs = require ("fs");
-var os = require ("os");
-var utils = require ("daveutils");
-var s3 = require ("daves3");
-var rss = require ("./lib/rss.js");
-var dateFormat = require ("dateformat");
-var dns = require ("dns");
-var sendMail = require ("./lib/sendmail.js");
+const utils = require ("daveutils");
+const s3 = require ("daves3");
+const davehttp = require ("davehttp"); 
+const rss = require ("./lib/rss.js");
+const sendMail = require ("./lib/sendmail.js");
+const request = require ("request");
+const fs = require ("fs");
+const os = require ("os");
+const dateFormat = require ("dateformat");
+const dns = require ("dns");
 
 var stats = {
 	productName: myProductName, version: myVerion,
@@ -25,7 +25,6 @@ var stats = {
 	};
 var flStatsDirty = false;
 var fnameStats = "stats.json";
-var flEveryMinuteScheduled = false;
 
 var servers;
 var whenLastEveryMinute = new Date ();
@@ -33,7 +32,11 @@ var whenLastSaveStats = new Date ();
 
 var config = {
 	s3statspath: "/scripting.com/code/servermonitor/stats.json",
-	urlServerList: "http://scripting.com/code/servermonitor/serverlist.json"
+	urlServerList: "http://scripting.com/code/servermonitor/serverlist.json",
+	httpServer: {
+		port: 1410,
+		flAllowAccessFromAnywhere: true
+		}
 	};
 var whenLastEmailSent = new Date (0), minSecsBetwEmails = 30 * 60; //at most one email every half hour
 var fnameConfig = "config.json";
@@ -132,7 +135,6 @@ function checkServer (theServer, theMachines, callback) {
 			}
 		});
 	}
-
 function checkMachine (theMachine) {
 	var url = "http://scripting.com/code/freediskspace/data/" + theMachine + ".json";
 	request (url, function (err, response, jsontext) {
@@ -150,7 +152,6 @@ function checkMachine (theMachine) {
 			}
 		});
 	}
-
 function readConfig (callback) {
 	fs.readFile (fnameConfig, function (err, data) {
 		if (!err) {
@@ -202,7 +203,18 @@ function saveStats (callback) { //2/26/19 by DW
 			}
 		});
 	}
-
+function startHttpServer () {
+	davehttp.start (config.httpServer, function (theRequest) {
+		switch (theRequest.lowerpath) {
+			case "/stats":
+				theRequest.httpReturn (200, "text/plain", utils.jsonStringify (stats));
+				break;
+			default: 
+				theRequest.httpReturn (404, "text/plain", "Not found");
+				break;
+			}
+		});
+	}
 function everyMinute () {
 	var now = new Date ();
 	readConfig (function () {
@@ -247,13 +259,6 @@ function everySecond () {
 			flStatsDirty = false;
 			}
 		}
-	if (!flEveryMinuteScheduled) {
-		if (now.getSeconds () == 0) {
-			flEveryMinuteScheduled = true;
-			setInterval (everyMinute, 60000); 
-			everyMinute (); //do one right now
-			}
-		}
 	}
 function getMyIpAddress () { //12/24/18 by DW
 	var interfaces = os.networkInterfaces ();
@@ -276,7 +281,8 @@ function startup () {
 			stats.ctServerStarts++;
 			stats.whenLastServerStart = new Date ();
 			statsChanged ();
-			everyMinute ();
+			startHttpServer ();
+			utils.runEveryMinute (everyMinute);
 			setInterval (everySecond, 1000); 
 			});
 		});
