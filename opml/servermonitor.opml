@@ -11,7 +11,7 @@
 		<windowRight>1500</windowRight>
 		</head>
 	<body text="servermonitor.js">
-		<outline text="var myProductName = &quot;Server Monitor&quot;, myVerion = &quot;0.5.11&quot;;"></outline>
+		<outline text="var myProductName = &quot;Server Monitor&quot;, myVersion = &quot;0.5.15&quot;; "></outline>
 		<outline text=""></outline>
 		<outline text="const utils = require (&quot;daveutils&quot;);"></outline>
 		<outline text="const s3 = require (&quot;daves3&quot;);"></outline>
@@ -25,7 +25,7 @@
 		<outline text="const dns = require (&quot;dns&quot;);"></outline>
 		<outline text=""></outline>
 		<outline text="var stats = {">
-			<outline text="productName: myProductName, version: myVerion,"></outline>
+			<outline text="productName: myProductName, version: myVersion,"></outline>
 			<outline text="ctServerStarts: 0, whenLastServerStart: new Date (),"></outline>
 			<outline text="ctChanges: 0, whenLastChange: new Date (0),"></outline>
 			<outline text="ctSaves: 0, whenLastSave: new Date (0),"></outline>
@@ -152,7 +152,7 @@
 					<outline text="theStats.ctConsecutiveErrors++;"></outline>
 					<outline text="theStats.ctErrorsToday++;"></outline>
 					<outline text="theStats.whenLastError = now;"></outline>
-					<outline text="console.log (theServer.name + &quot; is not OK. err == &quot; + msg);"></outline>
+					<outline text="console.log (&quot;checkServer: &quot; + now.toLocaleTimeString () + &quot;, &quot; + theServer.name + &quot; is not OK. err == &quot; + msg);"></outline>
 					<outline text="if (theStats.ctConsecutiveErrors &gt; 1) { //1/31/19 by DW">
 						<outline text="sendMailAboutServer (theServer, msg);"></outline>
 						<outline text="}"></outline>
@@ -171,7 +171,7 @@
 							</outline>
 						<outline text="else {">
 							<outline text="theStats.ctConsecutiveErrors = 0;"></outline>
-							<outline text="console.log (theServer.name + &quot; is OK.&quot;);"></outline>
+							<outline isComment="true" text="console.log (theServer.name + &quot; is OK.&quot;);"></outline>
 							<outline text="}"></outline>
 							</outline>
 						<outline text="}"></outline>
@@ -282,7 +282,7 @@
 			<outline text="stats.ctSaves++;"></outline>
 			<outline text="stats.whenLastSave = new Date ();"></outline>
 			<outline text="stats.productName = myProductName;"></outline>
-			<outline text="stats.version = myVerion;"></outline>
+			<outline text="stats.version = myVersion;"></outline>
 			<outline text=""></outline>
 			<outline text="var jsontext = utils.jsonStringify (stats);"></outline>
 			<outline text="fs.writeFile (fnameStats, jsontext, function (err) {">
@@ -298,7 +298,7 @@
 					<outline text="}"></outline>
 					</outline>
 				<outline text="else {">
-					<outline text="console.log (&quot;saveStats: config.s3statspath == &quot; + config.s3statspath);"></outline>
+					<outline isComment="true" text="console.log (&quot;saveStats: config.s3statspath == &quot; + config.s3statspath);"></outline>
 					<outline text="}"></outline>
 					</outline>
 				<outline text="});"></outline>
@@ -325,9 +325,10 @@
 		<outline text="function everyMinute () {">
 			<outline text="var now = new Date ();"></outline>
 			<outline text="readConfig (function () {">
-				<outline text="console.log (&quot;\neveryMinute: &quot; + now.toLocaleTimeString () + &quot;, v&quot; + myVerion);"></outline>
+				<outline isComment="true" text="console.log (&quot;\neveryMinute: &quot; + now.toLocaleTimeString () + &quot;, v&quot; + myVersion);"></outline>
 				<outline text="//rollovers">
 					<outline text="if (!utils.sameDay (now, whenLastEveryMinute)) {">
+						<outline created="Fri, 07 Jan 2022 15:54:42 GMT" text="console.log (&quot;everyMinute: &quot; + now.toLocaleString () + &quot;, v&quot; + myVersion); //1/7/22 by DW"></outline>
 						<outline text="for (x in stats.servers) {">
 							<outline text="var server = stats.servers [x];"></outline>
 							<outline text="server.ctChecksToday = 0;"></outline>
@@ -338,14 +339,14 @@
 						</outline>
 					<outline text="whenLastEveryMinute = now;"></outline>
 					</outline>
-				<outline text="try {">
-					<outline text="request (config.urlServerList, function (err, response, jsontext) {">
-						<outline text="if (err) {">
-							<outline text="console.log (&quot;\neveryMinute: error reading serverlist == &quot; + err.message);"></outline>
-							<outline text="stats.ctReadListErrors++;"></outline>
-							<outline text="}"></outline>
-							</outline>
-						<outline text="else {">
+				<outline text="request (config.urlServerList, function (err, response, jsontext) {">
+					<outline text="if (err) {">
+						<outline text="console.log (&quot;\neveryMinute: error reading serverlist == &quot; + err.message);"></outline>
+						<outline text="stats.ctReadListErrors++;"></outline>
+						<outline text="}"></outline>
+						</outline>
+					<outline text="else {">
+						<outline text="try {">
 							<outline text="var servers = JSON.parse (jsontext);"></outline>
 							<outline isComment="true" text="console.log (&quot;\neveryMinute: servers == &quot; + utils.jsonStringify (servers));"></outline>
 							<outline text="for (var x in servers.theList) {">
@@ -360,13 +361,13 @@
 							<outline isComment="true" text="sendMailAboutServer (servers.theList [&quot;dave.pocalyp.se&quot;], &quot;This is just a test email to see what happens.&quot;)"></outline>
 							<outline text="}"></outline>
 							</outline>
-						<outline text="});"></outline>
+						<outline text="catch (err) {">
+							<outline text="stats.ctReadListErrors++;"></outline>
+							<outline text="}"></outline>
+							</outline>
+						<outline text="}"></outline>
 						</outline>
-					<outline text="}"></outline>
-					</outline>
-				<outline text="catch (err) {">
-					<outline text="stats.ctReadListErrors++;"></outline>
-					<outline text="}"></outline>
+					<outline text="});"></outline>
 					</outline>
 				<outline text="});"></outline>
 				</outline>
@@ -412,7 +413,7 @@
 			<outline text="}"></outline>
 			</outline>
 		<outline text="function startup () {">
-			<outline text="console.log (&quot;\n&quot; + myProductName + &quot; v&quot; + myVerion);"></outline>
+			<outline text="console.log (&quot;\n&quot; + myProductName + &quot; v&quot; + myVersion + &quot;, &quot; + new Date ().toLocaleString ());"></outline>
 			<outline text="readConfig (function () {">
 				<outline text="console.log (&quot;\nstartup: config == &quot; + utils.jsonStringify (config));"></outline>
 				<outline text="readStats (function () {">

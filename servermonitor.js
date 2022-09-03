@@ -1,4 +1,4 @@
-var myProductName = "Server Monitor", myVerion = "0.5.11";
+var myProductName = "Server Monitor", myVersion = "0.5.15"; 
 
 const utils = require ("daveutils");
 const s3 = require ("daves3");
@@ -12,7 +12,7 @@ const dateFormat = require ("dateformat");
 const dns = require ("dns");
 
 var stats = {
-	productName: myProductName, version: myVerion,
+	productName: myProductName, version: myVersion,
 	ctServerStarts: 0, whenLastServerStart: new Date (),
 	ctChanges: 0, whenLastChange: new Date (0),
 	ctSaves: 0, whenLastSave: new Date (0),
@@ -90,7 +90,7 @@ function checkServer (theServer, theMachines, callback) {
 			theStats.ctConsecutiveErrors++;
 			theStats.ctErrorsToday++;
 			theStats.whenLastError = now;
-			console.log (theServer.name + " is not OK. err == " + msg);
+			console.log ("checkServer: " + now.toLocaleTimeString () + ", " + theServer.name + " is not OK. err == " + msg);
 			if (theStats.ctConsecutiveErrors > 1) { //1/31/19 by DW
 				sendMailAboutServer (theServer, msg);
 				}
@@ -105,7 +105,6 @@ function checkServer (theServer, theMachines, callback) {
 					}
 				else {
 					theStats.ctConsecutiveErrors = 0;
-					console.log (theServer.name + " is OK.");
 					}
 				}
 			theStats.ctSecsLastCheck = utils.secondsSince (now);
@@ -186,7 +185,7 @@ function saveStats (callback) { //2/26/19 by DW
 	stats.ctSaves++;
 	stats.whenLastSave = new Date ();
 	stats.productName = myProductName;
-	stats.version = myVerion;
+	stats.version = myVersion;
 	
 	var jsontext = utils.jsonStringify (stats);
 	fs.writeFile (fnameStats, jsontext, function (err) {
@@ -199,7 +198,6 @@ function saveStats (callback) { //2/26/19 by DW
 			console.log ("saveStats: err == " + utils.jsonStringify (err));
 			}
 		else {
-			console.log ("saveStats: config.s3statspath == " + config.s3statspath);
 			}
 		});
 	}
@@ -218,9 +216,9 @@ function startHttpServer () {
 function everyMinute () {
 	var now = new Date ();
 	readConfig (function () {
-		console.log ("\neveryMinute: " + now.toLocaleTimeString () + ", v" + myVerion);
 		//rollovers
 			if (!utils.sameDay (now, whenLastEveryMinute)) {
+				console.log ("everyMinute: " + now.toLocaleString () + ", v" + myVersion); //1/7/22 by DW
 				for (x in stats.servers) {
 					var server = stats.servers [x];
 					server.ctChecksToday = 0;
@@ -228,13 +226,13 @@ function everyMinute () {
 					}
 				}
 			whenLastEveryMinute = now;
-		try {
-			request (config.urlServerList, function (err, response, jsontext) {
-				if (err) {
-					console.log ("\neveryMinute: error reading serverlist == " + err.message);
-					stats.ctReadListErrors++;
-					}
-				else {
+		request (config.urlServerList, function (err, response, jsontext) {
+			if (err) {
+				console.log ("\neveryMinute: error reading serverlist == " + err.message);
+				stats.ctReadListErrors++;
+				}
+			else {
+				try {
 					var servers = JSON.parse (jsontext);
 					for (var x in servers.theList) {
 						checkServer (servers.theList [x], servers.theMachines);
@@ -243,11 +241,11 @@ function everyMinute () {
 						checkMachine (servers.theMachines [x]);
 						}
 					}
-				});
-			}
-		catch (err) {
-			stats.ctReadListErrors++;
-			}
+				catch (err) {
+					stats.ctReadListErrors++;
+					}
+				}
+			});
 		});
 	}
 function everySecond () {
@@ -273,7 +271,7 @@ function getMyIpAddress () { //12/24/18 by DW
 	return ("0.0.0.0");
 	}
 function startup () {
-	console.log ("\n" + myProductName + " v" + myVerion);
+	console.log ("\n" + myProductName + " v" + myVersion + ", " + new Date ().toLocaleString ());
 	readConfig (function () {
 		console.log ("\nstartup: config == " + utils.jsonStringify (config));
 		readStats (function () {
