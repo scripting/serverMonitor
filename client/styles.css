@@ -1,0 +1,69 @@
+body { 
+	font-family: Ubuntu;
+	font-size: 20px;
+	background-color: whitesmoke;
+	}
+.divPageBody {
+	width: 60%;
+	margin-top: 30px;
+	margin-left: auto;
+	margin-right: auto;
+	margin-bottom: 400px;
+	}
+.divServerMonitorTable td {
+	padding: 7px;
+	padding-left: 0;
+	padding-right: 18px;
+	font-size: 18px;
+	}
+.tdNum {
+	text-align: right;
+	}
+.divLegend {
+	margin-top: 20px;
+	font-size: 16px;
+	}
+.spBold {
+	font-weight: bold;
+	color: red;
+	}
+.machineTable {
+	margin-top: 35px;
+	margin-bottom: 35px;
+	}
+.divServerStatusMsg {
+	font-size: 16px;
+	margin-bottom: 20px;
+	min-height: 1em;
+	}
+
+@media only screen 
+and (min-device-width : 320px) 
+and (max-device-width : 480px) {
+	.divPageBody {
+		width: 90%;
+		border: none;
+		margin-left: auto;
+		margin-right: auto;
+		padding: 5px;
+		background-color: inherit;
+		margin-top: 0px;
+		margin-bottom: 300px;
+		}
+	h1 {
+		font-size: 24px;
+		}
+	.divServerMonitorTable td {
+		padding: 3px;
+		padding-left: 0;
+		padding-right: 12px;
+		font-size: 16px;
+		}
+	.divLegend {
+		margin-top: 25px;
+		font-size: 13px;
+		}
+	.divLegend p {
+		margin-bottom: 0;
+		}
+	}
